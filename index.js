@@ -3,7 +3,8 @@ const textgraph = document.querySelector("p");
 const btn = document.querySelector("#bodyButton");
 const container = document.querySelector("#container");
 
-btn.addEventListener("click", () => {
+btn.addEventListener("click", (event) => {
+  console.log(event);
   const randRGBArray = getRandomColor();
   const randRGBFormatString = `RGB(${randRGBArray[0]}, ${randRGBArray[1]}, ${randRGBArray[2]})`;
   body.style.backgroundColor = randRGBFormatString;
@@ -11,22 +12,45 @@ btn.addEventListener("click", () => {
 
   const divs = container.childNodes;
   for (let div of divs) {
-    updateContrast(div.lastChild, getContrast(getBackgroundColor(div), getBackgroundColor(body)));
+    const textContainer = div.querySelector("#textContainer");
+    if (!textContainer) continue;
+
+    updateContrast(
+      textContainer.querySelector("#contrastText"),
+      getContrast(getBackgroundColor(div), getBackgroundColor(body))
+    );
   }
 
   if (getContrastYIQ(...randRGBArray) === "white") {
     textgraph.classList.add("white-text");
+    for (let div of divs) {
+      if (div.childNodes.length === 1) {
+        div.classList.add("white-text");
+      }
+    }
   } else {
     textgraph.classList.remove("white-text");
+    for (let div of divs) {
+      if (div.childNodes.length === 1) {
+        div.classList.remove("white-text");
+      }
+    }
   }
 });
 
 for (let i = 0; i < 9; i++) {
   const newDiv = document.createElement("div");
+  const newP = document.createElement("p");
+  newP.id = "tempP";
+  newP.textContent = "Generate Color";
   newDiv.classList.add("box-button");
-  newDiv.textContent = "Generate Color";
-  newDiv.addEventListener("click", changeColor);
+  newDiv.appendChild(newP);
   container.appendChild(newDiv);
+
+  newDiv.addEventListener("click", (event) => {
+    initDivElements(event);
+  }, { once: true });
+
 }
 
 function updateContrast(elem, newContrast) {
@@ -39,28 +63,61 @@ function getBackgroundColor(elem) {
 }
 
 
-function changeColor() {
+const changeBGColor = (event) => {
+  console.log(event.bubbles);
+  const elem = event.currentTarget;
   const randRGBArray = getRandomColor();
-  const randRGBFormatString = `RGB(${randRGBArray[0]}, ${randRGBArray[1]}, ${randRGBArray[2]})`;
-  this.style.backgroundColor = randRGBFormatString;
-
   const bodyRGBArray = getBackgroundColor(body);
-  console.log(bodyRGBArray);
-  const contrast = getContrast(randRGBArray, bodyRGBArray);
-  const rgbText = document.createElement("p");
+
+  const randRGBFormatString = `RGB(${randRGBArray[0]}, ${randRGBArray[1]}, ${randRGBArray[2]})`;
+  elem.style.backgroundColor = randRGBFormatString;
+
+
+  const rgbText = elem.querySelector("#rgbText");
   rgbText.textContent = randRGBFormatString;
-  const contrastText = document.createElement("p");
+
+  const contrast = getContrast(randRGBArray, bodyRGBArray);
+  const contrastText = elem.querySelector("#contrastText");
   updateContrast(contrastText, contrast);
 
-  this.textContent = "";
-  this.appendChild(rgbText);
-  this.appendChild(contrastText);
-
   if (getContrastYIQ(...randRGBArray) === "white") {
-    this.classList.add("white-text");
+    elem.classList.add("white-text");
   } else {
-    this.classList.remove("white-text");
+    elem.classList.remove("white-text");
   }
+};
+
+const initDivElements = (event) => {
+  const rgbText = document.createElement("p");
+  rgbText.id = "rgbText";
+  const contrastText = document.createElement("p");
+  contrastText.id = "contrastText";
+  const textContainer = document.createElement("div");
+  textContainer.id = "textContainer";
+  const copyDiv = document.createElement("div");
+  copyDiv.id = "copyDiv";
+
+  copyDiv.classList.add("copy-button");
+  copyDiv.textContent = "Copy";
+  copyDiv.addEventListener("click", (event) => {
+    event.stopPropagation();
+    copyTextToClipboard(rgbText);
+  });
+
+  textContainer.appendChild(rgbText);
+  textContainer.appendChild(contrastText);
+  textContainer.classList.add("d-flex-column");
+
+  event.currentTarget.removeChild(event.currentTarget.querySelector("#tempP"));
+  event.currentTarget.appendChild(textContainer);
+  event.currentTarget.appendChild(copyDiv);
+  changeBGColor(event);
+  event.currentTarget.addEventListener("click", changeBGColor);
+};
+
+function copyTextToClipboard(elem) {
+  console.log(elem.textContent);
+  navigator.clipboard.writeText(elem.textContent);
 }
 
 function getRandomColor() {
